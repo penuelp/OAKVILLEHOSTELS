@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Parkwood + Oakville Admin v27.8 - Jan 2027</title>
+<title>HOSTEL MANAGEMENT SYSTEM</title>
 <style>
 body{font-family:Arial;padding:10px;background:#f2f2f2;margin:0}
 h2{text-align:center;margin:8px 0}
@@ -30,7 +30,8 @@ th{background:#0a7a42;color:#fff}
 </style>
 </head>
 <body>
-<h2>🏠 <span id="hostelTitle">Parkwood Hostels</span> Admin v27.8</h2>
+<h2>🏠 HOSTEL MANAGEMENT SYSTEM</h2>
+<span id="hostelTitle" style="display:none">Parkwood Hostels</span>
 <p style="text-align:center;font-size:13px;margin:4px 0"><b>💳 <span id="paybillLine">Paybill 516600 | Acc 589001 | Parkwood</span></b><br>Oakville: 247247 / 0766374370 | Parkwood: 516600 / 589001<br><b><span id="topRooms">Parkwood: 20 Rooms</span></b><br><span id="backupStatus" style="font-size:12px;color:#0a7a42"></span></p>
 <select id="hostelSelect" onchange="switchHostel(this.value)"><option value="parkwood">Parkwood Hostels</option><option value="oakville">Oakville Hostels</option></select>
 
@@ -183,15 +184,12 @@ th{background:#0a7a42;color:#fff}
 
 <script>
 const HOSTELS={parkwood:{name:'Parkwood Hostels',paybill:'516600',account:'589001',expected:22500},oakville:{name:'Oakville Hostels',paybill:'247247',account:'0766374370',expected:22500}};
-// v27.8 LOCKED PRICING - JAN 2027 NO SECURITY
 function getTotalDue(tt,rt,period){
   period=period||document.getElementById('tPeriod')?.value||'Jan2027';
   if(period==='Jan2027'){
-    // Jan 2027: NO SECURITY for anyone, rent only
     if(rt==='Double') return 34000;
     return 21000;
   }
-  // Normal: WITH Security
   if(tt==='Old'&&rt==='Single') return 22500;
   if(tt==='New'&&rt==='Double') return 34000;
   if(tt==='Old'&&rt==='Double') return 37000;
@@ -266,7 +264,6 @@ function applyBackup(obj){
   document.getElementById('restoreMsg').innerHTML='✅ Restored! Parkwood: '+load('parkwood').length+' | Oakville: '+load('oakville').length+' - Go to Admin to check.';
   alert('✅ Restored! Parkwood: '+load('parkwood').length+' | Oakville: '+load('oakville').length);
 }
-// MIGRATE from v27.7 / v27.6 / v27.5
 ['parkwood','oakville'].forEach(h=>{
   if(!load(h).length){
     let old=JSON.parse(localStorage.getItem('parkwood_'+h+'_v277')||localStorage.getItem('parkwood_'+h+'_v275')||localStorage.getItem('parkwood_'+h+'_v274')||localStorage.getItem('parkwood_'+h+'_v273')||'[]');
@@ -315,85 +312,4 @@ function parseSms(sms){
   if(crNew) code=crNew[1].toUpperCase();
   else{ let cr=sms.match(/Ref\.?\s*([A-Z][A-Z0-9]{7,11})/i); if(cr) code=cr[1].toUpperCase(); else{ let m=sms.match(/\b([A-Z]{2,3}[A-Z0-9]{7,9})\b/); if(m) code=m[1].toUpperCase(); } }
   let amt=0; let am=sms.match(/KES\.?\s*([\d,]+\.?\d*)/i); if(am) amt=Number(am[1].replace(/,/g,''));
-  let date=''; let dm=sms.match(/(?:Date:|on)\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}(?:\s+at\s+[0-9:\.]+\s*(?:AM|PM)?)?)/i);
-  if(dm) date=dm[1]; else{ let dm2=sms.match(/(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/); let tm=sms.match(/(\d{1,2}:\d{2})/); if(dm2) date=dm2[1]; if(tm) date+=(date?' ':'')+tm[1]; }
-  let isParkwoodMsg = sms.includes('589001');
-  let isOakvilleMsg = sms.includes('0766374370') || sms.toUpperCase().includes('OARKVILLE') || sms.toUpperCase().includes('OAKVILLE');
-  return {code,amt,date,isParkwoodMsg,isOakvilleMsg};
-}
-function pasteSms(){
-  let sms=document.getElementById('tSms').value;
-  if(!sms.trim()){document.getElementById('payMsg').innerHTML='⚠️ Paste SMS first';return;}
-  let p=parseSms(sms);
-  if(p.code) document.getElementById('tCode').value=p.code;
-  if(p.amt){ document.getElementById('tAmount').value=p.amt; updateBalancePreview(); }
-  if(p.date){
-    let m=p.date.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+at\s+([0-9:\.]+)\s*(AM|PM)?)?/i);
-    if(m){ let d=m[1],mo=m[2],y=m[3],t=(m[4]||'12:00').replace('.',':'),ap=(m[5]||'').toUpperCase(); if(y.length==2) y='20'+y; let hh=parseInt(t.split(':')[0],10), mm=t.split(':')[1]||'00'; if(ap==='PM' && hh<12) hh+=12; if(ap==='AM' && hh==12) hh=0; document.getElementById('tDate').value=`${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}T${String(hh).padStart(2,'0')}:${mm}`; }
-  }
-  if(!p.code && !p.amt){ document.getElementById('payMsg').innerHTML='❌ Could not read SMS. Type manually.'; return; }
-  let hostelMsg='';
-  if(p.isParkwoodMsg && p.isOakvilleMsg) hostelMsg='⚠️ Message contains BOTH 589001 and 0766374370 - Check carefully.';
-  else if(cur==='parkwood' && p.isOakvilleMsg && !p.isParkwoodMsg) hostelMsg='❌ WRONG HOSTEL: This is OAKVILLE message, you are in PARKWOOD. Will go to Unallocated if you Save.';
-  else if(cur==='oakville' && p.isParkwoodMsg && !p.isOakvilleMsg) hostelMsg='❌ WRONG HOSTEL: This is PARKWOOD message, you are in OAKVILLE. Will go to Unallocated if you Save.';
-  else if(cur==='parkwood' && p.isParkwoodMsg) hostelMsg='✅ Correct for PARKWOOD (589001)';
-  else if(cur==='oakville' && p.isOakvilleMsg) hostelMsg='✅ Correct for OAKVILLE (0766374370)';
-  let dup=findDuplicateCode(p.code);
-  let dupMsg=dup ? '❌ DUPLICATE: '+p.code+' already used - '+dup.where+' - '+dup.who : '✅ Code not used before';
-  document.getElementById('payMsg').innerHTML='✅ Auto-filled: '+p.code+' - KES '+p.amt.toLocaleString()+' - '+p.date+'<br>'+hostelMsg+'<br>'+dupMsg;
-}
-function testSMS(){document.getElementById('tSms').value='Confirmed. Payment of KES. 22,500.00 to OARKVILLE HOSTELS Till No. 0766374370 has been received. Ref. UHRFP46SZA on 27-08-2026 at 14:44. Thank you.';pasteSms();}
-function savePay(){
-  let roomRaw=document.getElementById('tRoom').value.trim();let room=roomRaw.padStart(3,'0');let name=document.getElementById('tName').value.trim();let id=document.getElementById('tId').value.trim();let phone=document.getElementById('tPhone').value.trim();let amount=parseFloat(document.getElementById('tAmount').value)||0;let code=document.getElementById('tCode').value.trim().toUpperCase();let dateVal=document.getElementById('tDate').value;let sms=document.getElementById('tSms').value;
-  let tenantType=document.getElementById('tTenantType').value; let roomType=document.getElementById('tRoomType').value; let period=document.getElementById('tPeriod').value; let totalDue=getTotalDue(tenantType,roomType,period);
-  if(!roomRaw||room=='000')return alert('Fill Room No first');let rn=parseInt(room,10);let totalRooms=getTotalRooms(cur);if(rn<1||rn>totalRooms)return alert(`Room must be 001 to ${String(totalRooms).padStart(3,'0')} in ${H().name}. Go to Rooms and Add Room.`);
-  if(!name)return alert('Fill Name');if(!code)return alert('Fill Code');if(!amount)return alert('Fill Amount');
-  let dateShow=dateVal?new Date(dateVal).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):(parseSms(sms).date||'—');
-  let dup=findDuplicateCode(code);
-  if(dup) return alert('❌ DUPLICATE CODE! '+code+' already used!\n'+dup.where+' - '+dup.who+'\nCannot use same payment twice.');
-  let p=parseSms(sms); let isParkwoodMsg=p.isParkwoodMsg, isOakvilleMsg=p.isOakvilleMsg;
-  if(cur==='parkwood' && isOakvilleMsg && !isParkwoodMsg){ un.push({code,amount,date:dateShow,sms,name,phone,room,totalDue,tenantType,roomType,period});localStorage.setItem(ukey(),JSON.stringify(un));autoBackup();document.getElementById('payMsg').innerHTML='⚠️ Oakville Till (0766374370) - Saved to Unallocated in Parkwood. Switch to Oakville and Move it.';render();return; }
-  if(cur==='oakville' && isParkwoodMsg && !isOakvilleMsg){ un.push({code,amount,date:dateShow,sms,name,phone,room,totalDue,tenantType,roomType,period});localStorage.setItem(ukey(),JSON.stringify(un));autoBackup();document.getElementById('payMsg').innerHTML='⚠️ Parkwood Account (589001) - Saved to Unallocated in Oakville. Switch to Parkwood and Move it.';render();return; }
-  let bal=totalDue-amount;let status=bal<=0?'Paid Full':'Partial';
-  let ex=data.find(d=>d.room==room&&d.name.toLowerCase()==name.toLowerCase());
-  if(ex){ex.amount+=amount;ex.totalDue=totalDue;ex.tenantType=tenantType;ex.roomType=roomType;ex.period=period;ex.bal=totalDue-ex.amount;ex.status=ex.bal<=0?'Paid Full':'Partial';ex.date=dateShow;ex.code=code;ex.phone=phone;ex.id=id;}else data.push({name,phone,room,id,code,amount,date:dateShow,bal,status,totalDue,tenantType,roomType,period});
-  localStorage.setItem(key(),JSON.stringify(data));autoBackup();
-  document.getElementById('payMsg').innerHTML='✅ SAVED: '+period+' - Room '+room+' - '+name+' - '+tenantType+' '+roomType+' - Total Due '+totalDue.toLocaleString()+' - Paid '+amount.toLocaleString()+' - Bal '+bal.toLocaleString()+' - '+code+' - '+dateShow;
-  document.getElementById('tRoom').value='';document.getElementById('tName').value='';document.getElementById('tId').value='';document.getElementById('tPhone').value='';document.getElementById('tAmount').value='';document.getElementById('tCode').value='';document.getElementById('tDate').value='';document.getElementById('tSms').value='';document.getElementById('tBalPreview').value='';render();
-}
-function cancelPay(i){let r=data[i];let reason=prompt(`Cancel ${r.name} Room ${r.room} - ${r.code} ?\nRoom ${r.room} will stay EMPTY.`,'Booking cancelled');if(reason===null)return;if(!confirm(`Cancel ${r.name} Room ${r.room}?`))return;cancelled.push({...r,cancelReason:reason||'Cancelled',cancelDate:new Date().toLocaleString('en-GB')});data.splice(i,1);localStorage.setItem(key(),JSON.stringify(data));localStorage.setItem(ckey(),JSON.stringify(cancelled));autoBackup();render();alert('✅ Cancelled: '+r.name+' - Room '+r.room+' now EMPTY');}
-function cancelTestRecordsThis(){let tests=data.filter(isTest);if(!tests.length)return alert('No test records');if(!confirm(`Cancel ${tests.length} test(s)?`))return;tests.forEach(t=>cancelled.push({...t,cancelReason:'Test record',cancelDate:new Date().toLocaleString('en-GB')}));data=data.filter(r=>!isTest(r));localStorage.setItem(key(),JSON.stringify(data));localStorage.setItem(ckey(),JSON.stringify(cancelled));autoBackup();render();alert('✅ Cancelled '+tests.length);}
-function cancelTestRecordsBoth(){let total=0;['parkwood','oakville'].forEach(h=>{let d=load(h);let c=loadCan(h);let u=loadUn(h);let tests=d.filter(isTest);let testsUn=u.filter(isTest);if(tests.length||testsUn.length){tests.forEach(t=>c.push({...t,cancelReason:'Test - Both',cancelDate:new Date().toLocaleString('en-GB')}));testsUn.forEach(t=>c.push({...t,cancelReason:'Test - Unallocated',cancelDate:new Date().toLocaleString('en-GB')}));d=d.filter(r=>!isTest(r));u=u.filter(r=>!isTest(r));saveAll(h,d,u,c);total+=tests.length+testsUn.length;}});data=load(cur);un=loadUn(cur);cancelled=loadCan(cur);if(!total)return alert('No test records in BOTH');render();alert('✅ Cancelled '+total+' in BOTH');}
-function cancelPenuelBoth(){if(!confirm('Cancel Penuel in BOTH? Room 009 becomes EMPTY.'))return;let total=0;['parkwood','oakville'].forEach(h=>{let d=load(h);let c=loadCan(h);let u=loadUn(h);let found=d.filter(isPenuel);let foundUn=u.filter(isPenuel);found.forEach(t=>c.push({...t,cancelReason:'Cancelled - Both',cancelDate:new Date().toLocaleString('en-GB')}));foundUn.forEach(t=>c.push({...t,cancelReason:'Cancelled - Unallocated Both',cancelDate:new Date().toLocaleString('en-GB')}));d=d.filter(r=>!isPenuel(r));u=u.filter(r=>!isPenuel(r));saveAll(h,d,u,c);total+=found.length+foundUn.length;});data=load(cur);un=loadUn(cur);cancelled=loadCan(cur);if(!total)return alert('Penuel not found');render();alert('✅ Cancelled Penuel in BOTH ('+total+')');}
-function clearAllBoth(){if(!confirm('⚠️ Clear ALL Tenants in BOTH? Rooms will stay.'))return;if(!confirm('Are you SURE?'))return;['parkwood','oakville'].forEach(h=>{localStorage.setItem(key(h),JSON.stringify([]));});data=[];autoBackup();render();alert('Cleared tenants in BOTH. Rooms still there.');}
-function restoreCancelled(i){let r=cancelled[i];if(!confirm(`Restore ${r.name} Room ${r.room}?`))return;data.push({name:r.name,phone:r.phone,room:r.room,id:r.id||'',code:r.code,amount:r.amount,date:r.date,bal:r.bal,status:r.status,totalDue:r.totalDue||21000,tenantType:r.tenantType||'Old',roomType:r.roomType||'Single',period:r.period||'Jan2027'});cancelled.splice(i,1);localStorage.setItem(key(),JSON.stringify(data));localStorage.setItem(ckey(),JSON.stringify(cancelled));autoBackup();render();}
-function deleteCancelled(i){if(!confirm('Permanently delete this cancelled record? Room will stay.'))return;cancelled.splice(i,1);localStorage.setItem(ckey(),JSON.stringify(cancelled));autoBackup();render();}
-function clearCancelled(){if(confirm('Clear all Cancelled in '+H().name+'?')){cancelled=[];localStorage.setItem(ckey(),JSON.stringify(cancelled));autoBackup();render();}}
-function clearCancelledBoth(){if(confirm('Clear ALL Cancelled in BOTH?')){['parkwood','oakville'].forEach(h=>localStorage.setItem(ckey(h),JSON.stringify([])));cancelled=[];autoBackup();render();alert('Cleared Cancelled in BOTH');}}
-function moveUnallocated(i){let u=un[i];let name=prompt('Tenant Name for '+u.code+' ?',u.name||'');if(!name)return;let room=prompt('Room ?',u.room||'001');if(!room)return;let per=prompt('Period? Jan2027 or Normal',u.period||'Jan2027')||'Jan2027'; let tt=prompt('New or Old?',u.tenantType||'Old')||'Old'; let rt=prompt('Single or Double?',u.roomType||'Single')||'Single'; let totalDue=getTotalDue(tt,rt,per); let bal=totalDue-u.amount;let status=bal<=0?'Paid Full':'Partial';data.push({name,phone:u.phone||'',room:room.padStart(3,'0'),id:'',code:u.code,amount:u.amount,date:u.date,bal,status,totalDue,tenantType:tt,roomType:rt,period:per});un.splice(i,1);localStorage.setItem(key(),JSON.stringify(data));localStorage.setItem(ukey(),JSON.stringify(un));autoBackup();render();alert('Moved to Admin - Total Due '+totalDue);}
-function deleteUn(i){if(!confirm('Delete this unallocated?'))return;un.splice(i,1);localStorage.setItem(ukey(),JSON.stringify(un));autoBackup();render();}
-function render(){
-  let q=(document.getElementById('adminSearch')?.value||'').toLowerCase();let total=data.reduce((s,r)=>s+r.amount,0);let totalRooms=getTotalRooms(cur);
-  document.getElementById('statCount').innerText=data.length;document.getElementById('statTotal').innerText=total.toLocaleString();document.getElementById('statCancel').innerText=cancelled.length;
-  document.getElementById('roomsCount').innerText=totalRooms+' Rooms (001-'+String(totalRooms).padStart(3,'0')+')';document.getElementById('currentRooms').innerText=totalRooms;document.getElementById('lastRoom').innerText=String(totalRooms).padStart(3,'0');
-  document.getElementById('topRooms').innerText=`${H().name}: ${totalRooms} Rooms | Parkwood: ${getTotalRooms('parkwood')} | Oakville: ${getTotalRooms('oakville')}`;
-  document.querySelectorAll('.roomRange').forEach(e=>e.innerText=`001 - ${String(totalRooms).padStart(3,'0')}`);document.querySelectorAll('.adminRooms').forEach(e=>e.innerText=`${totalRooms} Rooms`);document.getElementById('tRoom').max=totalRooms;
-  let hb=document.getElementById('adminBody');hb.innerHTML='';let filtered=data.filter(r=>(r.name+' '+r.room+' '+r.code+' '+(r.phone||'')).toLowerCase().includes(q));
-  filtered.forEach(r=>{let idx=data.indexOf(r);hb.innerHTML+=`<tr><td>${r.room}</td><td>${r.name}</td><td>${r.period||'Jan2027'}</td><td>${r.tenantType||'Old'} ${r.roomType||'Single'}</td><td>${r.id||''}</td><td>${r.phone||''}</td><td><b>${r.code}</b></td><td>${r.amount.toLocaleString()}</td><td>${(r.totalDue||21000).toLocaleString()}</td><td>${r.date}</td><td>${r.bal}</td><td>${r.status}</td><td><button onclick="cancelPay(${idx})" style="background:#c00;padding:8px">❌ Cancel</button></td></tr>`;});
-  if(!filtered.length)hb.innerHTML='<tr><td colspan=13>No active payments</td></tr>';
-  let cb=document.getElementById('cancelBody');cb.innerHTML='';cancelled.forEach((r,i)=>{cb.innerHTML+=`<tr><td>${r.room}</td><td>${r.name}</td><td><b>${r.code}</b></td><td>${r.amount.toLocaleString()}</td><td>${r.cancelDate}</td><td>${r.cancelReason}</td><td><button onclick="restoreCancelled(${i})" style="padding:6px;background:#007bff">Restore</button> <button onclick="deleteCancelled(${i})" style="padding:6px;background:#c00">Delete</button></td></tr>`;});
-  if(!cancelled.length)cb.innerHTML='<tr><td colspan=7>No cancelled bookings</td></tr>';
-  let ub=document.getElementById('unBody');ub.innerHTML='';un.forEach((r,i)=>{ub.innerHTML+=`<tr><td><b>${r.code}</b></td><td>${r.amount.toLocaleString()}</td><td>${r.date}</td><td style="font-size:11px">${r.sms}</td><td><button onclick="moveUnallocated(${i})" style="padding:6px;background:#007bff">Move → Admin</button> <button onclick="deleteUn(${i})" style="padding:6px;background:#c00">X</button></td></tr>`;});
-  if(!un.length)ub.innerHTML='<tr><td colspan=5>No unallocated</td></tr>';
-  let rc=document.getElementById('roomsCancelled');rc.innerHTML=cancelled.length?cancelled.map(c=>`👋 ${c.name} - Room ${c.room} - ${c.cancelDate}`).join('<br>'):'None yet.';
-  let rl=document.getElementById('roomsList');rl.innerHTML='';for(let i=1;i<=totalRooms;i++){let rn=String(i).padStart(3,'0');let tenants=data.filter(d=>d.room==rn);if(tenants.length){rl.innerHTML+=`<div class="room"><span>${rn}</span><span><b>🟡 ${tenants.length} PERSON</b></span><span>${tenants.map(t=>t.name+' ('+(t.tenantType||'')+' '+(t.roomType||'')+')').join(', ')}</span></div>`;}else{rl.innerHTML+=`<div class="room"><span>${rn}</span><span>🟢 EMPTY</span><span>-</span></div>`;}}
-  updateBackupStatus();
-}
-function exportCSV(){let rows=[['Hostel','Paybill','Room','Name','Period','TenantType','RoomType','TotalDue','ID','Phone','Code','Amount','Date','Bal','Status']];data.forEach(r=>rows.push([H().name,H().paybill,r.room,r.name,r.period||'',r.tenantType||'',r.roomType||'',r.totalDue||21000,r.id||'',r.phone||'',r.code,r.amount,r.date,r.bal,r.status]));let csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');let b=new Blob(['\uFEFF'+csv],{type:'text/csv'});let a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=H().name+'_'+new Date().toISOString().slice(0,10)+'.csv';a.click();}
-function exportCSVBoth(){let rows=[['Hostel','Paybill','Room','Name','Period','TenantType','RoomType','TotalDue','ID','Phone','Code','Amount','Date','Bal','Status']];['parkwood','oakville'].forEach(k=>{load(k).forEach(r=>rows.push([HOSTELS[k].name,HOSTELS[k].paybill,r.room,r.name,r.period||'',r.tenantType||'',r.roomType||'',r.totalDue||21000,r.id||'',r.phone||'',r.code,r.amount,r.date,r.bal,r.status]));});let csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');let b=new Blob(['\uFEFF'+csv],{type:'text/csv'});let a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='BOTH_Hostels_'+new Date().toISOString().slice(0,10)+'.csv';a.click();}
-function genReport(all){let allData=[];let total=0;if(all){Object.keys(HOSTELS).forEach(k=>{let d=load(k);d.forEach(r=>allData.push({...r,hostel:HOSTELS[k].name}));});}else{allData=data.map(r=>({...r,hostel:H().name}));}total=allData.reduce((s,r)=>s+r.amount,0);let txt=`${all?'ALL HOSTELS':' '+H().name.toUpperCase()} - LANDLORD REPORT\nBoss: ${document.getElementById('rName').value} ${document.getElementById('rPhone').value}\nPeriod: ${document.getElementById('rPeriod').value}\nPaybill: ${H().paybill} Acc: ${H().account}\nActive: ${allData.length} | Total Rooms: ${getTotalRooms(cur)} | Cancelled: ${cancelled.length}\nTotal Collected: KES ${total.toLocaleString()}\n\n`;allData.forEach(r=>{txt+=`Room ${r.room} | ${r.name} | ${r.period||''} ${r.tenantType||''} ${r.roomType||''} | Total Due ${(r.totalDue||21000).toLocaleString()} | ${r.code} | KES ${r.amount.toLocaleString()} | Bal ${r.bal} | ${r.date} | ${r.status} | ${r.hostel}\n`;});document.getElementById('reportOut').textContent=txt;}
-function sendWhatsApp(){let txt=document.getElementById('reportOut').textContent||'Parkwood Report';window.open('https://wa.me/254790232897?text='+encodeURIComponent(txt),'_blank');}
-document.getElementById('hostelSelect').value=cur;document.getElementById('hostelTitle').innerText=H().name;document.getElementById('paybillLine').innerText=`Paybill ${H().paybill} | Acc ${H().account} | ${H().name}`;document.querySelectorAll('.hname').forEach(e=>e.innerText=H().name);render();autoBackup();updateTotalDue();
-</script>
-</body>
-</html>
+  let date=''; let dm=sms.match(/(?:Date:|on)\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d
